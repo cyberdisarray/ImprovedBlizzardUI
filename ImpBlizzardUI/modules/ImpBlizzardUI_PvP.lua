@@ -158,17 +158,10 @@ local function Init()
     PvPFrame:RegisterEvent("PLAYER_ENTERING_BATTLEGROUND");
     PvPFrame:RegisterEvent("ADDON_LOADED");
     PvPFrame:RegisterEvent("PARTY_KILL");
-end
 
--- Triggered when the BG / Arena queue pops, reposition the buttons
-function PVPReadyDialog_Display_Hook(self, index, displayName, isRated, queueType, gameType, role)
-    self.enterButton:ClearAllPoints();
-    self.enterButton:SetPoint("BOTTOM", self, "BOTTOM", 0, 25);
-    self.label:SetPoint("TOP", 0, -22);
-    self.leaveButton:Hide();
+    StaticPopupDialogs["CONFIRM_BATTLEFIELD_ENTRY"].button2 = nil;
+	StaticPopupDialogs["CONFIRM_BATTLEFIELD_ENTRY"].hideOnEscape = false;
 end
-
-hooksecurefunc("PVPReadyDialog_Display", PVPReadyDialog_Display_Hook);
 
 -- End of file, Initialise
 Init();

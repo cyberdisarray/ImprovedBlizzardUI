@@ -16,9 +16,6 @@ local CoreFont = "Interface\\Addons\\ImpBlizzardUI\\media\\impfont.ttf";
 -- Development Grid
 local DevGrid;
 
--- AFK Camera
-local AFKCamera;
-
 -- Co-ordinates Frame
 local CoordsFrame;
 
@@ -30,14 +27,10 @@ local function CoordsFrame_Tick(self, elapsed)
 	CoordsFrame.elapsed = CoordsFrame.elapsed + elapsed; -- Increment the tick timer
 	if(CoordsFrame.elapsed >= CoordsFrame.delay) then -- Matched tick delay?
 		if(Conf_ShowCoords) then -- Update the Co-ords frame
-			-- 7.1 Restricted this so it only works in the outside world. Lame.
-			local inInstance, _ = IsInInstance();
-			if(inInstance ~= true) then
-				if(Minimap:IsVisible()) then
-					local x, y = GetPlayerMapPosition("player");
-					if(x ~= 0 and y ~= 0) then
-						CoordsFrame.text:SetFormattedText("(%d:%d)", x * 100, y * 100);
-					end
+			if(Minimap:IsVisible()) then
+				local x, y = GetPlayerMapPosition("player");
+				if(x ~= 0 and y ~= 0) then
+					CoordsFrame.text:SetFormattedText("(%d:%d)", x * 100, y * 100);
 				end
 			end
 		end
@@ -86,88 +79,19 @@ local function CreateCoords()
 end
 
 -- Actually does the AFK Camera actions, begins spin, hides windows etc
+-- TODO ACTUALLY GET THIS WORKING
 local function AFKCamera_Spin(spin)
-	if(InCombatLockdown() == false) then
+	if(InCombatLockdown() == nil) then
 		if(spin) then
-			-- Refresh and Set the Player Model anims
-			AFKCamera.playerModel:SetUnit("player");
-			AFKCamera.playerModel:SetAnimation(0);
-			AFKCamera.playerModel:SetRotation(math.rad(-15));
-			AFKCamera.playerModel:SetCamDistanceScale(1.2);
-
-			-- Refresh and Set the Pet Model anims
-			AFKCamera.petModel:SetUnit("pet");
-			AFKCamera.petModel:SetAnimation(0);
-			AFKCamera.petModel:SetRotation(math.rad(45));
-			AFKCamera.petModel:SetCamDistanceScale(1.7);
-
-			-- Hide the PVE Frame if it is shown
-			if(PVEFrame and PVEFrame:IsShown()) then
-				AFKCamera.PvEIsOpen = true; -- Store that it was open so that we can automatically reopen it after
-				PVEFrame_ToggleFrame();
-			else
-				AFKCamera.PvEIsOpen = false;
-			end
-
 			-- Hide the UI and begin the camera spinning
 			UIParent:Hide();
-			AFKCamera.fadeInAnim:Play();
-			AFKCamera.hidden = false;
 			MoveViewRightStart(0.15);
 		else
-			if(AFKCamera.hidden == false) then
-				MoveViewRightStop();
-				UIParent:Show();
-				AFKCamera.fadeOutAnim:Play();
-
-				-- Reopen PVE Frame if it was open
-				if(AFKCamera.PvEIsOpen) then
-					PVEFrame_ToggleFrame();
-				end
-
-				AFKCamera.hidden = true;
-			end
+			UIParent:Show();
+			MoveViewRightStop();
 		end
 	end
 end
-
--- Initialises the AFK Camera module
-local function AFKCamera_Init()
-	AFKCamera = CreateFrame("Frame", nil, WorldFrame);
-	AFKCamera:SetAllPoints();
-	AFKCamera:SetAlpha(0);
-	AFKCamera.width, AFKCamera.height = AFKCamera:GetSize();
-
-	-- Set Up the Player Model
-	AFKCamera.playerModel = CreateFrame("PlayerModel", nil, AFKCamera);
-	AFKCamera.playerModel:SetSize(AFKCamera.height * 0.8, AFKCamera.height * 1.3);
-	AFKCamera.playerModel:SetPoint("BOTTOMRIGHT", AFKCamera.height * 0.1, -AFKCamera.height * 0.4);
-
-	-- Pet model for Hunters, Warlocks etc
-	AFKCamera.petModel = CreateFrame("playerModel", nil, AFKCamera);
-	AFKCamera.petModel:SetSize(AFKCamera.height * 0.7, AFKCamera.height);
-	AFKCamera.petModel:SetPoint("BOTTOMLEFT", AFKCamera.height * 0.05, -AFKCamera.height * 0.3);
-
-	AFKCamera.hidden = true;
-
-	-- Initialise the fadein / out anims
-	AFKCamera.fadeInAnim = AFKCamera:CreateAnimationGroup();
-	AFKCamera.fadeIn = AFKCamera.fadeInAnim:CreateAnimation("Alpha");
-	AFKCamera.fadeIn:SetDuration(0.5);
-	AFKCamera.fadeIn:SetFromAlpha(0);
-	AFKCamera.fadeIn:SetToAlpha(1);
-	AFKCamera.fadeIn:SetOrder(1);
-	AFKCamera.fadeInAnim:SetScript("OnFinished", function() AFKCamera:SetAlpha(1) end );
-
-	AFKCamera.fadeOutAnim = AFKCamera:CreateAnimationGroup();
-	AFKCamera.fadeOut = AFKCamera.fadeOutAnim:CreateAnimation("Alpha");
-	AFKCamera.fadeOut:SetDuration(0.5);
-	AFKCamera.fadeOut:SetFromAlpha(1);
-	AFKCamera.fadeOut:SetToAlpha(0);
-	AFKCamera.fadeOut:SetOrder(1);
-	AFKCamera.fadeOutAnim:SetScript("OnFinished", function() AFKCamera:SetAlpha(0) end );
-end
-
 
 -- Ticks every 2 seconds, updates the performance counter
 local function PerformanceFrame_Tick(self, elapsed)
@@ -195,7 +119,7 @@ local function PerformanceFrame_Tick(self, elapsed)
 		local frameRate = floor(GetFramerate()); -- Get the current frame rate
 
 		-- Colour Frame Rate
-		if(frameRate >= 60) then
+		if(frameRate >= 55) then
 			frameRate = format("|cff00CC00%s|r", frameRate );
 		elseif(frameRate >= 20 and frameRate <= 59) then
 			frameRate = format("|cffFFFF00%s|r", frameRate );
@@ -251,9 +175,9 @@ local function DrawDevGrid()
 		for columns = 0, cellSizeX do
 			local line = DevGrid:CreateTexture(nil, 'BACKGROUND');
 			if( columns == cellSizeX / 2 ) then -- Half Way Line
-				line:SetColorTexture(1, 0, 0, 0.5 );
+				line:SetTexture(1, 0, 0, 0.5 );
 			else
-				line:SetColorTexture(0, 0, 0, 0.5 );
+				line:SetTexture(0, 0, 0, 0.5 );
 			end
 			line:SetPoint('TOPLEFT', DevGrid, 'TOPLEFT', columns * screenWidth - 1, 0);
 			line:SetPoint('BOTTOMRIGHT', DevGrid, 'BOTTOMLEFT', columns * screenWidth + 1, 0);
@@ -261,9 +185,9 @@ local function DrawDevGrid()
 		for rows = 0, cellSizeY do
 			local line = DevGrid:CreateTexture(nil, 'BACKGROUND');
 			if( rows == cellSizeY / 2 ) then -- Half Way Line
-				line:SetColorTexture(1, 0, 0, 0.5 );
+				line:SetTexture(1, 0, 0, 0.5 );
 			else
-				line:SetColorTexture(0, 0, 0, 0.5 );
+				line:SetTexture(0, 0, 0, 0.5 );
 			end
 			line:SetPoint('TOPLEFT', DevGrid, 'TOPLEFT', 0, -rows * screenHeight + 1);
 			line:SetPoint('BOTTOMRIGHT', DevGrid, 'TOPRIGHT', 0, -rows * screenHeight - 1)
@@ -350,90 +274,11 @@ local function HandleEvents(self, event, unit)
 	end
 end
 
-local function RefreshOrderHallInfo()
-	-- Refresh Currency
-	local currency = C_Garrison.GetCurrencyTypes(LE_GARRISON_TYPE_7_0)
-	local name, amount, texture = GetCurrencyInfo(currency);
-	Core.OrderBar.resourcesText:SetText("|T"..texture..":12:12:0:0:60:60:4:60:4:60|t".." "..amount);
-
-	-- Refresh Troops etc
-	local troopText = "";
-	local info = C_Garrison.GetClassSpecCategoryInfo(LE_FOLLOWER_TYPE_GARRISON_7_0);
-	for i, troop in ipairs(info) do
-		troopText = troopText.."|T".. troop.icon ..":12:12:0:0:60:60:4:60:4:60|t ";
-		troopText = troopText.. troop.count .. "/".. troop.limit.."    ";
-	end
-	Core.OrderBar.troopsText:SetText(troopText);
-end
-
--- Builds the replacement order hall bar
-local function BuildOrderHallBar()
-	-- Set the Position
-	Core.OrderBar:SetFrameStrata("BACKGROUND");
-	Core.OrderBar:SetWidth(32);
-	Core.OrderBar:SetHeight(32);
-	Core.OrderBar:SetPoint("TOP", 0, 0);
-
-	-- Create the Location Text and Assign Font
-	Core.OrderBar.locationText = Core.OrderBar:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-	Core.OrderBar.locationText:SetPoint("CENTER", 0, 0);
-	Core.OrderBar.locationText:SetFont(CoreFont, 16, "THINOUTLINE");
-
-	-- Tweak Location Colour
-	local classColour = RAID_CLASS_COLORS[select(2, UnitClass("player"))]
-	classColour = format("|cff%02x%02x%02x", classColour.r*255, classColour.g*255, classColour.b*255)
-
-	-- Get the name of the current order hall and set it with class colouring
-	Core.OrderBar.locationText:SetText(classColour.._G["ORDER_HALL_"..select(2, UnitClass("player"))]);
-
-	-- Create the Order Hall Resources Text and Assign a Font
-	Core.OrderBar.resourcesText = Core.OrderBar:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-	Core.OrderBar.resourcesText:SetPoint("CENTER", -200, 0);
-	Core.OrderBar.resourcesText:SetFont(CoreFont, 16, "THINOUTLINE");
-
-	-- Create the Order Hall Resources Text and Assign a Font
-	Core.OrderBar.troopsText = Core.OrderBar:CreateFontString(nil, "OVERLAY", "GameFontNormal");
-	Core.OrderBar.troopsText:SetPoint("CENTER", 200, 0);
-	Core.OrderBar.troopsText:SetFont(CoreFont, 16, "THINOUTLINE");
-end
-
--- Event Handler for the Class Order Hall Bar
-local function OrderHallEvents(self, event, ...)
-	-- Stop the Order Hall bar from ever showing
-	if (event == "ADDON_LOADED" and ... == "Blizzard_OrderHallUI") then
-		local OrderHall = OrderHallCommandBar;
-		OrderHall:UnregisterAllEvents();
-		OrderHall:SetScript("OnShow", OrderHall.Hide);
-		OrderHall:Hide();
-		GarrisonLandingPageTutorialBox:SetClampedToScreen(true);
-		self:UnregisterEvent("ADDON_LOADED");
-	end
-
-	-- Check if we're in the order hall
-	if event == "UNIT_AURA" or event == "PLAYER_ENTERING_WORLD" then
-		-- Hide Order Hall Bar if we're not in the Order Hall
-		self:SetShown(C_Garrison.IsPlayerInGarrison(LE_GARRISON_TYPE_7_0))
-
-		if C_Garrison.IsPlayerInGarrison(LE_GARRISON_TYPE_7_0) then
-			-- Trigger a refresh
-			C_Garrison.RequestClassSpecCategoryInfo(LE_FOLLOWER_TYPE_GARRISON_7_0)
-
-			RefreshOrderHallInfo();
-		end
-	end
-
-	-- Refresh Information
-	if(event == "CURRENCY_DISPLAY_UPDATE" or event == "GARRISON_TALENT_COMPLETE" or event == "GARRISON_TALENT_UPDATE" or event == "UNIT_PHASE" or event == "GARRISON_FOLLOWER_CATEGORIES_UPDATED" or event == "GARRISON_FOLLOWER_ADDED" or event == "GARRISON_FOLLOWER_REMOVED") then
-		RefreshOrderHallInfo();
-	end
-end
 
 -- Initialises the Core module and its relevant submodules
 local function Init()
     SLASH_IMPBLIZZ1 = "/impblizz";
     SlashCmdList["IMPBLIZZ"] = HandleCommands; -- Set up the slash commands handler
-
-	AFKCamera_Init();
 
     Core:SetScript("OnEvent", HandleEvents); -- Set the Event Handler
 
@@ -448,23 +293,8 @@ local function Init()
 	CreateCoords();
 	PerformanceFrame_Init();
 
-	-- Set up the Class Order Hall Bar
-	Core.OrderBar = CreateFrame("Frame", "OrderBar", UIParent);
-	BuildOrderHallBar();
-	Core.OrderBar:SetScript("OnEvent", OrderHallEvents);
-	Core.OrderBar:RegisterEvent("CURRENCY_DISPLAY_UPDATE");
-	Core.OrderBar:RegisterEvent("GARRISON_FOLLOWER_CATEGORIES_UPDATED");
-	Core.OrderBar:RegisterEvent("GARRISON_FOLLOWER_ADDED");
-	Core.OrderBar:RegisterEvent("GARRISON_FOLLOWER_REMOVED");
-	Core.OrderBar:RegisterEvent("GARRISON_TALENT_UPDATE");
-	Core.OrderBar:RegisterEvent("GARRISON_TALENT_COMPLETE");
-	Core.OrderBar:RegisterUnitEvent("UNIT_AURA", "player");
-	Core.OrderBar:RegisterUnitEvent("UNIT_PHASE", "player");
-	Core.OrderBar:RegisterEvent("PLAYER_ENTERING_WORLD");
-	Core.OrderBar:RegisterEvent("ADDON_LOADED");
-
     -- Init Finished
-    print("|cffffff00Improved Blizzard UI " .. GetAddOnMetadata("ImpBlizzardUI", "Version") .. " Initialised");
+    print("|cffffff00Improved Blizzard UI (Cataclysm Edition) " .. GetAddOnMetadata("ImpBlizzardUI", "Version") .. " Initialised");
 end
 
 -- End of File, Call Init

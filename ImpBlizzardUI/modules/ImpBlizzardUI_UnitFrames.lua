@@ -26,10 +26,11 @@ end
 
 -- Does the bulk of the tweaking to the unit frames
 local function AdjustUnitFrames()
-    if(InCombatLockdown() == false) then
+    if(InCombatLockdown() == nil) then
         ModifyFrame(PlayerFrame, "CENTER", nil, -265, -150, 1.40); -- Player Frame
         ModifyFrame(TargetFrame, "CENTER", nil, 265, -150, 1.40); -- Target Frame
-        TargetFrame.buffsOnTop = true;
+
+        TargetFrame.buffsOnTop = true; -- TODO: THIS DOESNT WORK
 
         ModifyFrame(FocusFrame, "LEFT", PlayerFrame, -175, -45, 1.25); -- Focus Frame
 
@@ -38,20 +39,21 @@ local function AdjustUnitFrames()
         for i = 2, 4 do _G["PartyMemberFrame"..i]:SetScale(1.6); end -- Resize the other children
 
         -- Boss Frames
-        for i = 1, 5 do -- Scale Them
+        for i = 1, 4 do -- Scale Them
             _G["Boss"..i.."TargetFrame"]:SetParent(UIParent);
             _G["Boss"..i.."TargetFrame"]:SetScale(0.95);
             _G["Boss"..i.."TargetFrame"]:SetFrameStrata("BACKGROUND");
         end
-        for i = 2, 5 do -- Adjust Positions
+        for i = 2, 4 do -- Adjust Positions
             _G["Boss"..i.."TargetFrame"]:SetPoint("TOPLEFT", _G["Boss"..(i-1).."TargetFrame"], "BOTTOMLEFT", 0, 15);
         end
 
         -- Arena Frames
-        for i=1, 5 do
-            _G["ArenaPrepFrame"..i]:SetScale(1.75);
-        end
-        ArenaEnemyFrames:SetScale(1.75);
+        -- TODO: FIX THIS
+        --for i=1, 5 do
+            --_G["ArenaPrepFrame"..i]:SetScale(1.75);
+        --end
+        --ArenaEnemyFrames:SetScale(1.75);
     end
 end
 
@@ -87,7 +89,7 @@ end
 local function BuildUnitFrameClassColor()
     if(Conf_ClassColours) then
         UnitFrames.PlayerFrameNameBackground = CreateFrame("FRAME", "PlayerFrameNameBackground", PlayerFrame);
-        UnitFrames.PlayerFrameNameBackground:SetFrameStrata("LOW");
+        UnitFrames.PlayerFrameNameBackground:SetFrameStrata("BACKGROUND");
 
         -- Set Frame directly behind PlayerFrameName because there is no backgroundframe
         UnitFrames.PlayerFrameNameBackground:SetWidth(PlayerFrameHealthBar:GetWidth()) --119

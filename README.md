@@ -1,5 +1,5 @@
-ImprovedBlizzardUI
-==================
+ImprovedBlizzardUI (Cataclysm Edition)
+======================================
 
 Improved Blizzard UI is an attempt to improve the default Blizzard interface. This has been customized to how I personally like my UI set up. There is some very basic configuration in game but things like positioning and scale of items still needs modifying directly in the LUA.
 
@@ -17,7 +17,6 @@ Localized for enGB / enUS / deDE (ben2k1690) / ruRU (A few strings missing). See
 * Added a performance counter above the Minimap
 * Buffs repositioned and tweaked.
 * Casting Bar Repositioned
-* Swapped the default Class Order Hall bar with a custom replacement.
 
 ### Unit Frames
 

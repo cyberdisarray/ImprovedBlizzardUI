@@ -10,9 +10,21 @@ local BarFrame = CreateFrame("Frame", nil, UIParent);
 -- Buffs
 BarFrame.buffPoint = BuffFrame.SetPoint;
 BarFrame.buffScale = BuffFrame.SetScale;
+TemporaryEnchantFrame.buffPoint = TemporaryEnchantFrame.SetPoint;
+TemporaryEnchantFrame.buffScale = TemporaryEnchantFrame.SetScale;
+
+-- Totem Bar
+local newTotemBar;
+blizzardTimers = true;
+barTimers = true;
+spacing = 8;
 
 -- Helper function for moving a Blizzard frame that has a SetMoveable flag
 local function ModifyFrame(frame, anchor, parent, posX, posY, scale)
+    if (frame == nil) then
+        print("Missing Frame");
+        return;
+    end
     frame:SetMovable(true);
     frame:ClearAllPoints();
     if(parent == nil) then frame:SetPoint(anchor, posX, posY) else frame:SetPoint(anchor, parent, posX, posY) end
@@ -23,16 +35,128 @@ end
 
 -- Helper function for moving a Blizzard frame that does NOT have a SetMoveable flag
 local function ModifyBasicFrame(frame, anchor, parent, posX, posY, scale)
+    if (frame == nil) then
+        print("Missing Basic Frame");
+        return;
+    end
     frame:ClearAllPoints();
     if(parent == nil) then frame:SetPoint(anchor, posX, posY) else frame:SetPoint(anchor, parent, posX, posY) end
     if(scale ~= nil) then frame:SetScale(scale) end
 end
 
--- Move the talking head frame up slightly so it doesn't clip with the bottom right action bar
-local function MoveTalkingHeadFrame()
-    TalkingHeadFrame.ignoreFramePositionManager = true;
-    TalkingHeadFrame:ClearAllPoints();
-    TalkingHeadFrame:SetPoint("BOTTOM", 0, 155);
+function newTotemBar_Destroy(self, button)
+	if (button ~= "RightButton") then return end
+	if (self:GetName() == "MultiCastActionButton1") or (self:GetName() == "MultiCastActionButton5") or (self:GetName() == "MultiCastActionButton9") then
+		DestroyTotem(2);
+	elseif (self:GetName() == "MultiCastActionButton2") or (self:GetName() == "MultiCastActionButton6") or (self:GetName() == "MultiCastActionButton10") then
+		DestroyTotem(1);
+	elseif (self:GetName() == "MultiCastActionButton3") or (self:GetName() == "MultiCastActionButton7") or (self:GetName() == "MultiCastActionButton11") then
+		DestroyTotem(3);
+	elseif (self:GetName() == "MultiCastActionButton4") or (self:GetName() == "MultiCastActionButton8") or (self:GetName() == "MultiCastActionButton12") then
+		DestroyTotem(4);
+	end
+end
+
+function newTotemBar_Update(totemN)
+	if blizzardTimers == false then
+		TotemFrame:Hide()
+	end
+	if newTotemBarTimers == true then
+		haveTotem, totemName, startTime, duration = GetTotemInfo(totemN)
+       		if (duration == 0) then
+			TotemTimers[totemN]:SetCooldown(0, 0);
+		else
+			TotemTimers[totemN]:SetCooldown(startTime, duration)
+		end
+	end
+end
+
+local function FixTotemBar()
+    newTotemBar = CreateFrame("Frame","newTotemBar",UIParent)
+    newTotemBar:SetWidth(190 + (spacing*5))
+    newTotemBar:SetHeight(38)
+    newTotemBar:SetPoint("CENTER","UIParent","CENTER")
+
+    MultiCastActionBarFrame:SetParent(newTotemBar)
+    MultiCastActionBarFrame:SetWidth(0.01)
+
+    MultiCastSummonSpellButton:SetParent(newTotemBar)
+    MultiCastSummonSpellButton:ClearAllPoints()
+    MultiCastSummonSpellButton:SetPoint("BOTTOMLEFT", newTotemBar, 5, 5)
+
+    for i=1, 4 do
+    	_G["MultiCastSlotButton"..i]:SetParent(newTotemBar)
+    end
+    MultiCastSlotButton1:ClearAllPoints()
+    MultiCastSlotButton1:SetPoint("LEFT", MultiCastSummonSpellButton, "RIGHT", spacing, 0)
+    for i=2, 4 do
+    	local b = _G["MultiCastSlotButton"..i]
+    	local b2 = _G["MultiCastSlotButton"..i-1]
+    	b:ClearAllPoints()
+    	b:SetPoint("LEFT", b2, "RIGHT", spacing, 0)
+    end
+
+    MultiCastRecallSpellButton:ClearAllPoints()
+    MultiCastRecallSpellButton:SetPoint("LEFT", MultiCastSlotButton4, "RIGHT", spacing, 0)
+
+    for i=1, 12 do
+    	local b = _G["MultiCastActionButton"..i]
+    	local b2 = _G["MultiCastSlotButton"..(i % 4 == 0 and 4 or i % 4)]
+    	b:ClearAllPoints()
+    	b:SetPoint("CENTER", b2, "CENTER", 0, 0)
+    end
+
+    local dummy = function() return end
+    for i=1, 4 do
+    	local b = _G["MultiCastSlotButton"..i]
+    	b.SetParent = dummy
+    	b.SetPoint = dummy
+    end
+    MultiCastRecallSpellButton.SetParent = dummy
+    MultiCastRecallSpellButton.SetPoint = dummy
+
+    local defaults = { Anchor = "CENTER", X = 0, Y = 0, Scale = 1.0, Hide = false }
+
+    local TotemTimers = {};
+    TotemTimers[1] = CreateFrame("Cooldown","TotemTimers1",MultiCastSlotButton2)
+    TotemTimers[2] = CreateFrame("Cooldown","TotemTimers2",MultiCastSlotButton1)
+    TotemTimers[3] = CreateFrame("Cooldown","TotemTimers3",MultiCastSlotButton3)
+    TotemTimers[4] = CreateFrame("Cooldown","TotemTimers4",MultiCastSlotButton4)
+    TotemTimers[1]:SetAllPoints(MultiCastSlotButton2)
+    TotemTimers[2]:SetAllPoints(MultiCastSlotButton1)
+    TotemTimers[3]:SetAllPoints(MultiCastSlotButton3)
+    TotemTimers[4]:SetAllPoints(MultiCastSlotButton4)
+
+    newTotemBar:RegisterEvent("PLAYER_ENTERING_WORLD")
+    newTotemBar:RegisterEvent("PLAYER_TOTEM_UPDATE")
+
+    newTotemBar:SetScript("OnEvent", function(self,event,...)
+            if (event=="PLAYER_ENTERING_WORLD") then
+    		if HasMultiCastActionBar() == false then
+    			newTotemBar:Hide()
+    		else
+    			newTotemBar:Show()
+    		end
+    		for i=1, MAX_TOTEMS do
+    			newTotemBar_Update(i);
+    		end
+    	elseif (event=="PLAYER_TOTEM_UPDATE") then
+                    newTotemBar_Update(select(1,...));
+            end
+    end)
+
+    newTotemBar:SetScript("OnMouseDown",function()
+    	newTotemBar:StartMoving()
+    end)
+
+    newTotemBar:SetScript("OnMouseUp",function()
+    	newTotemBar:StopMovingOrSizing()
+    end)
+
+    for i = 1, 12 do
+    	hooker = _G["MultiCastActionButton"..i];
+    	hooker:HookScript("OnClick", newTotemBar_Destroy)
+    end
 end
 
 local function AdjustExperienceBars()
@@ -51,70 +175,21 @@ local function AdjustExperienceBars()
         if _G["MainMenuMaxLevelBar"..i] then _G["MainMenuMaxLevelBar"..i]:Hide() end
     end
 
-    -- Adjust Artifact Power Bar
-    ArtifactWatchBar:SetWidth(512);
-    ArtifactWatchBar:SetFrameStrata("BACKGROUND");
-    ArtifactWatchBar.StatusBar:SetWidth(512);
-    ArtifactWatchBar.StatusBar.XPBarTexture0:Hide();
-    ArtifactWatchBar.StatusBar.XPBarTexture1:Hide();
-    ArtifactWatchBar.StatusBar.XPBarTexture2:Hide();
-    ArtifactWatchBar.StatusBar.XPBarTexture3:Hide();
-    ArtifactWatchBar.StatusBar.WatchBarTexture0:Hide();
-    ArtifactWatchBar.StatusBar.WatchBarTexture1:Hide();
-    ArtifactWatchBar.StatusBar.WatchBarTexture2:Hide();
-    ArtifactWatchBar.StatusBar.WatchBarTexture3:Hide();
     if(MainMenuExpBar:IsShown()) then
         offset = 10;
     else
         offset = 0;
     end -- Tweak position based on exp bar being visible
-    ModifyBasicFrame(ArtifactWatchBar, "TOP", nil, 0, offset + 3, nil); -- Move it
-
-    -- Adjust Honor Bar
-    HonorWatchBar:SetWidth(512);
-    HonorWatchBar:SetFrameStrata("BACKGROUND");
-    HonorWatchBar.StatusBar:SetWidth(512);
-    HonorWatchBar.StatusBar.XPBarTexture0:Hide();
-    HonorWatchBar.StatusBar.XPBarTexture1:Hide();
-    HonorWatchBar.StatusBar.XPBarTexture2:Hide();
-    HonorWatchBar.StatusBar.XPBarTexture3:Hide();
-    HonorWatchBar.StatusBar.WatchBarTexture0:Hide();
-    HonorWatchBar.StatusBar.WatchBarTexture1:Hide();
-    HonorWatchBar.StatusBar.WatchBarTexture2:Hide();
-    HonorWatchBar.StatusBar.WatchBarTexture3:Hide();
-    if(MainMenuExpBar:IsShown() and ArtifactWatchBar:IsShown()) then
-        offset = 20;
-    elseif(MainMenuExpBar:IsShown() ~= true and ArtifactWatchBar:IsShown()) then
-        offset = 10;
-    end
-    ModifyBasicFrame(HonorWatchBar, "TOP", nil, 0, offset + 3, nil); -- Move it
 
     -- Tweak and Adjust Reputation Bar
-    ReputationWatchBar.StatusBar:SetWidth(512);
+    ReputationWatchStatusBar:SetWidth(512);
     ReputationWatchBar:SetFrameStrata("BACKGROUND");
     ReputationWatchBar:SetWidth(512);
-    ReputationWatchBar.StatusBar.WatchBarTexture0:Hide();
-    ReputationWatchBar.StatusBar.WatchBarTexture1:Hide();
-    ReputationWatchBar.StatusBar.WatchBarTexture2:Hide();
-    ReputationWatchBar.StatusBar.WatchBarTexture3:Hide();
-    ReputationWatchBar.StatusBar.XPBarTexture0:Hide();
-    ReputationWatchBar.StatusBar.XPBarTexture1:Hide();
-    ReputationWatchBar.StatusBar.XPBarTexture2:Hide();
-    ReputationWatchBar.StatusBar.XPBarTexture3:Hide();
-    if(HonorWatchBar:IsShown() and ArtifactWatchBar:IsShown() and MainMenuExpBar:IsShown()) then
-        offset = 30;
-    elseif(HonorWatchBar:IsShown() ~= true and ArtifactWatchBar:IsShown() and MainMenuExpBar:IsShown()) then
-        offset = 20;
-    elseif(ArtifactWatchBar:IsShown() ~= true and MainMenuExpBar:IsShown()) then
-        offset = 10;
-    elseif(MainMenuExpBar:IsShown() ~= true and ArtifactWatchBar:IsShown()) then
-        offset = 10;
-    elseif(MainMenuExpBar:IsShown() ~= true and HonorWatchBar:IsShown()) then
-        offset = 10;
-    else
-        offset = 0;
+    for i = 0, 3 do
+        _G["ReputationWatchBarTexture"..i]:Hide()
     end
-    ModifyBasicFrame(ReputationWatchBar, "TOP", nil, 0, 2 + offset, nil); -- Move it
+
+    ModifyBasicFrame(ReputationWatchBar, "TOP", nil, 0, offset, nil); -- Move it
 end
 
 -- Does the bulk of the tweaking to the primary action bars
@@ -122,7 +197,8 @@ end
 local function AdjustActionBars()
     local offset = 0;
 
-    if(InCombatLockdown() == false) then
+    if(InCombatLockdown() == nil) then
+
         ModifyFrame(MainMenuBar, "BOTTOM", nil, 0, 0, 1.1); -- Main Action Bar
         ModifyFrame(MainMenuBarBackpackButton, "BOTTOMRIGHT", UIParent, -1, -300, nil); -- Bag Bar
         ModifyFrame(CharacterMicroButton, "BOTTOMRIGHT", UIParent, 0, 5000, nil); -- Micro Menu
@@ -144,14 +220,6 @@ local function AdjustActionBars()
             shownBars = shownBars + 1;
         end
 
-        if(ArtifactWatchBar:IsShown()) then
-            shownBars = shownBars + 1;
-        end
-
-        if(HonorWatchBar:IsShown()) then
-            shownBars = shownBars + 1;
-        end
-
         if(ReputationWatchBar:IsShown()) then
             shownBars = shownBars + 1;
         end
@@ -161,26 +229,28 @@ local function AdjustActionBars()
         ModifyFrame(MultiBarBottomRight, "BOTTOM", nil, 0, 92 + offset, nil); -- Bottom Right Action Bar
         ModifyFrame(MultiBarBottomLeft, "BOTTOM", nil, 0, 49 + offset, nil); -- Bottom Left Action Bar
 
-        -- Adjust and reposition the stance bar based on the above
+        -- Adjust and reposition the stance bar and totem bar based on the above
         if(MultiBarBottomLeft:IsShown()) then
-            ModifyFrame(StanceBarFrame, "TOPLEFT", nil, 0, 65 + offset, 1);
+            ModifyFrame(newTotemBar, "BOTTOM", nil, -162, offset + 100, 1);
+            ModifyFrame(ShapeshiftBarFrame, "TOPLEFT", nil, 0, 65 + offset, 1);
         end
         if(MultiBarBottomRight:IsShown()) then
-            ModifyFrame(StanceBarFrame, "TOPLEFT", nil, 0, 110 + offset, 1);
-            if(Conf_MoveTalkingHead) then
-                MoveTalkingHeadFrame();
-            end
+            ModifyFrame(newTotemBar, "BOTTOM", nil, -162, offset + 146, 1);
+            ModifyFrame(ShapeshiftBarFrame, "TOPLEFT", nil, 0, 110 + offset, 1);
         end
-        if(MultiBarBottomLeft:IsShown() ~= true and MultiBarBottomRight:IsShown() ~= true) then
-            ModifyFrame(StanceBarFrame, "TOPLEFT", nil, 0, 20 + offset, 1);
+        if(MultiBarBottomLeft:IsShown() == nil and MultiBarBottomRight:IsShown() == nil) then
+            ModifyFrame(newTotemBar, "BOTTOM", nil, -162, offset + 46, 1);
+            ModifyFrame(ShapeshiftBarFrame, "TOPLEFT", nil, 0, 20 + offset, 1);
         end
+
+        newTotemBar:SetFrameStrata("HIGH"); -- Keep Totem Bar on top of artwork
 
         -- Hide Textures
         MainMenuBarTexture2:SetTexture(nil);
         MainMenuBarTexture3:SetTexture(nil);
-        _G["StanceBarLeft"]:SetTexture(nil);
-        _G["StanceBarMiddle"]:SetTexture(nil);
-        _G["StanceBarRight"]:SetTexture(nil);
+        _G["ShapeshiftBarLeft"]:SetTexture(nil);
+        _G["ShapeshiftBarMiddle"]:SetTexture(nil);
+        _G["ShapeshiftBarRight"]:SetTexture(nil);
         _G["SlidingActionBarTexture"..0]:SetTexture(nil);
         _G["SlidingActionBarTexture"..1]:SetTexture(nil);
         if(Conf_ShowArt == false) then -- Hide Action Bar Art
@@ -198,13 +268,13 @@ local function AdjustActionBars()
 
         -- Adjust and reposition the pet bar based on the above
         if(MultiBarBottomRight:IsShown()) then
-            if ( StanceBarFrame and GetNumShapeshiftForms() > 0 ) then
+            if ( ShapeshiftBarFrame and GetNumShapeshiftForms() > 0 ) then
                 ModifyBasicFrame(PetActionButton1, "CENTER", nil, -609, 35 + offset);
             else
                 ModifyBasicFrame(PetActionButton1, "CENTER", nil, -143, 35 + offset);
             end
         else
-            if ( StanceBarFrame and GetNumShapeshiftForms() > 0 ) then
+            if ( ShapeshiftBarFrame and GetNumShapeshiftForms() > 0 ) then
                 ModifyBasicFrame(PetActionButton1, "CENTER", nil, -609, -8 + offset);
             else
                 ModifyBasicFrame(PetActionButton1, "CENTER", nil, -143, -8 + offset);
@@ -226,6 +296,10 @@ local function AdjustActionBars()
         BuffFrame:ClearAllPoints();
     	BarFrame.buffPoint(BuffFrame, "TOPRIGHT", -175, -22);
     	BarFrame.buffScale(BuffFrame, 1.4);
+
+        TemporaryEnchantFrame:ClearAllPoints();
+    	TemporaryEnchantFrame.buffPoint(TemporaryEnchantFrame, "TOPRIGHT", -175, -22);
+    	TemporaryEnchantFrame.buffScale(TemporaryEnchantFrame, 1.4);
     end
 end
 
@@ -260,8 +334,8 @@ local function UpdateMicroMenuList(newLevel)
                 securecall(ToggleFrame, PlayerTalentFrame)
             end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\MINIMAP\\TRACKING\\Profession' });
     end
-    table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Achievements"], func = function() securecall(ToggleAchievementFrame) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\MINIMAP\\Minimap_shield_elite', });
-    table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Quest Log"], func = function() securecall(ToggleFrame, WorldMapFrame) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\GossipFrame\\ActiveQuestIcon' });
+    table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Achievements"], func = function() securecall(ToggleAchievementFrame) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\Icons\\INV_Misc_Coin_02', });
+    table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Quest Log"], func = function() securecall(ToggleFrame, QuestLogFrame) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\GossipFrame\\ActiveQuestIcon' });
     table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Guild"], func = function()
         if (IsTrialAccount()) then
             UIErrorsFrame:AddMessage(ERR_RESTRICTED_ACCOUNT, 1, 0, 0)
@@ -270,14 +344,12 @@ local function UpdateMicroMenuList(newLevel)
         end
     end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\GossipFrame\\TabardGossipIcon' });
     if(newLevel >= 15) then
-        table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Group Finder"], func = function() securecall(PVEFrame_ToggleFrame, 'GroupFinderFrame') end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\LFGFRAME\\BattlenetWorking0' });
-        table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["PvP"], func = function() securecall(PVEFrame_ToggleFrame, 'PVPUIFrame', HonorFrame) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\MINIMAP\\TRACKING\\BattleMaster' });
+        table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Group Finder"], func = function() securecall(ToggleLFDParentFrame) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\LFGFRAME\\BattlenetWorking0' });
+        table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["PvP"], func = function() securecall(ToggleFrame, PVPFrame) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\MINIMAP\\TRACKING\\BattleMaster' });
     end
-    table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Collections"], func = function() securecall(ToggleCollectionsJournal) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\MINIMAP\\TRACKING\\StableMaster' });
     if(newLevel >= 15) then
-        table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Adventure Guide"].."     ", func = function() securecall(ToggleEncounterJournal) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\MINIMAP\\TRACKING\\BattleMaster' });
+        table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Dungeon Journal"].."     ", func = function() securecall(ToggleEncounterJournal) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\MINIMAP\\TRACKING\\None' });
     end
-    table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Shop"], func = function() securecall(ToggleStoreUI) end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\MINIMAP\\TRACKING\\Repair' });
     table.insert(BarFrame.microMenuList, {text = "|cffFFFFFF"..ImpBlizz["Swap Bags"], func = function() ToggleBagBar() end, notCheckable = true, fontObject = BarFrame.menuFont, icon = 'Interface\\MINIMAP\\TRACKING\\Banker' });
     table.insert(BarFrame.microMenuList, {text = "|cff00FFFF"..ImpBlizz["ImpBlizzardUI"], func = function() InterfaceOptionsFrame_OpenToCategory("Improved Blizzard UI") end, notCheckable = true, fontObject = BarFrame.menuFont });
     table.insert(BarFrame.microMenuList, {text = "|cffFFFF00"..ImpBlizz["Log Out"], func = function() Logout() end, notCheckable = true, fontObject = BarFrame.menuFont });
@@ -341,6 +413,8 @@ local function Init()
     BarFrame.menuFont:SetFontObject(GameFontNormal);
     BarFrame.menuFont:SetFont("Interface\\AddOns\\ImpBlizzardUI\\media\\impfont.ttf", 12, nil);
     BarFrame.bagsVisible = false;
+
+    FixTotemBar();
 end
 
 -- Handles the Out of Range action bar colouring
@@ -408,10 +482,11 @@ end)
 hooksecurefunc("MoveMicroButtons", MoveMicroButtons_Hook);
 hooksecurefunc("ActionButton_OnUpdate", UpdateActionRange);
 hooksecurefunc("MultiActionBar_Update", AdjustActionBars);
-hooksecurefunc("MainMenuBar_UpdateExperienceBars", MainMenuBar_UpdateExperienceBars_Hook);
+--hooksecurefunc("MainMenuBar_UpdateExperienceBars", MainMenuBar_UpdateExperienceBars_Hook); TODO
 hooksecurefunc("MainMenuBarVehicleLeaveButton_Update", MainMenuBarVehicleLeaveButton_Update_Hook);
 hooksecurefunc( BuffFrame, "SetPoint", function(frame) frame:ClearAllPoints(); BarFrame.buffPoint(BuffFrame, "TOPRIGHT", -175, -22); end);
 hooksecurefunc( BuffFrame, "SetScale", function(frame) BarFrame.buffScale(BuffFrame, 1.4); end)
+
 ExhaustionTick:HookScript("OnShow", ExhaustionTick.Hide); -- Make sure it never comes back
 -- Credit : BlizzBugsSuck (Shefki, Phanx) - http://www.wowinterface.com/downloads/info17002-BlizzBugsSuck.html
 -- Fix InterfaceOptionsFrame_OpenToCategory not actually opening the category (and not even scrolling to it) Used by the MicroMenu

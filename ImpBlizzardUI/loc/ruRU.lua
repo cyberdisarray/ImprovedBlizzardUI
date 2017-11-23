@@ -16,7 +16,7 @@ if( GetLocale() == "ruRU" )then
 	ImpBlizz["Guild"] = "Гильдия";
 	ImpBlizz["Group Finder"] = "Поиск группы";
 	ImpBlizz["Collections"] = "Коллекции";
-	ImpBlizz["Adventure Guide"] = "Руководство Приключения";
+	ImpBlizz["Dungeon Journal"] = "Руководство Приключения";
 	ImpBlizz["Shop"] = "Лавка";
 	ImpBlizz["Swap Bags"] = "Переместить сумки";
 	ImpBlizz["Log Out"] = "Выход из мира";
