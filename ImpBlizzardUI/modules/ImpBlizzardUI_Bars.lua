@@ -486,6 +486,7 @@ hooksecurefunc("MultiActionBar_Update", AdjustActionBars);
 hooksecurefunc("MainMenuBarVehicleLeaveButton_Update", MainMenuBarVehicleLeaveButton_Update_Hook);
 hooksecurefunc( BuffFrame, "SetPoint", function(frame) frame:ClearAllPoints(); BarFrame.buffPoint(BuffFrame, "TOPRIGHT", -175, -22); end);
 hooksecurefunc( BuffFrame, "SetScale", function(frame) BarFrame.buffScale(BuffFrame, 1.4); end)
+hooksecurefunc( MainMenuExpBar, "SetWidth", function(frame) MainMenuExpBar:SetWidth(512); end)
 
 ExhaustionTick:HookScript("OnShow", ExhaustionTick.Hide); -- Make sure it never comes back
 -- Credit : BlizzBugsSuck (Shefki, Phanx) - http://www.wowinterface.com/downloads/info17002-BlizzBugsSuck.html
