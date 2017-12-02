@@ -232,7 +232,7 @@ local function HandleEvents(self, event, unit)
 	end
 
 	-- Auto sell all grey items whenever possible. Toggleable under Misc Config
-	if( event == "MERCHANT_SHOW" and Conf_SellGreys == true) then
+	if( event == "MERCHANT_SHOW" and Conf_SellGreys) then
 		local moneyEarned = 0;
 		for bags = 0, 4 do
 			for bagSlot = 1, GetContainerNumSlots( bags ) do
